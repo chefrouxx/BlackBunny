@@ -1,33 +1,74 @@
+import { COLORS, TEXT_STYLES } from '@/constants/fonts';
 import { Tabs } from 'expo-router';
-import React from 'react';
-
-import { HapticTab } from '@/components/haptic-tab';
-import { IconSymbol } from '@/components/ui/icon-symbol';
-import { Colors } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Image } from 'react-native';
 
 export default function TabLayout() {
-  const colorScheme = useColorScheme();
-
   return (
     <Tabs
       screenOptions={{
-        tabBarActiveTintColor: Colors[colorScheme ?? 'light'].tint,
-        headerShown: false,
-        tabBarButton: HapticTab,
-      }}>
+        tabBarShowIcon: false,
+        tabBarIcon: () => null,
+        tabBarStyle: {
+          backgroundColor: COLORS.background,
+          borderTopColor: COLORS.dark,
+          borderTopWidth: 1,
+        },
+        tabBarActiveTintColor: COLORS.accent,
+        tabBarInactiveTintColor: COLORS.textSecondary,
+        headerStyle: {
+          backgroundColor: COLORS.background,
+        },
+        headerTintColor: COLORS.text,
+        headerTitleStyle: {
+          fontFamily: TEXT_STYLES.title.fontFamily,
+          fontSize: TEXT_STYLES.title.fontSize,
+        },
+      }}
+    >
       <Tabs.Screen
         name="index"
         options={{
-          title: 'Home',
-          tabBarIcon: ({ color }) => <IconSymbol size={28} name="house.fill" color={color} />,
+          title: '🏠 Home',
+          headerTitle: 'BlackBunny',
+          headerTitleAlign: 'center',
+          headerRight: () => (
+            <Image
+              source={require('@/assets/images/logo.png')}
+              style={{ width: 32, height: 32, marginRight: 16 }}
+            />
+          ),
         }}
       />
       <Tabs.Screen
-        name="explore"
+        name="search"
         options={{
-          title: 'Explore',
-          tabBarIcon: ({ color }) => <IconSymbol size={28} name="paperplane.fill" color={color} />,
+          title: '🔍 Search',
+          headerTitle: 'Search',
+          headerTitleAlign: 'center',
+        }}
+      />
+      <Tabs.Screen
+        name="create"
+        options={{
+          title: '✍️ Create',
+          headerTitle: 'Create Post',
+          headerTitleAlign: 'center',
+        }}
+      />
+      <Tabs.Screen
+        name="chats"
+        options={{
+          title: '💬 Friends',
+          headerTitle: 'Friends',
+          headerTitleAlign: 'center',
+        }}
+      />
+      <Tabs.Screen
+        name="profile"
+        options={{
+          title: '👤 Profile',
+          headerTitle: 'Profile',
+          headerTitleAlign: 'center',
         }}
       />
     </Tabs>

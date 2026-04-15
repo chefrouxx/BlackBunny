@@ -1,98 +1,219 @@
-import { Image } from 'expo-image';
-import { Platform, StyleSheet } from 'react-native';
+import { COLORS, TEXT_STYLES } from "@/constants/fonts";
+import { getPosts, Post } from "@/src/posts/posts";
+import { useFocusEffect } from "@react-navigation/native";
+import { useCallback, useEffect, useState } from "react";
+import { Dimensions, FlatList, Image, Pressable, Text, View } from "react-native";
 
-import { HelloWave } from '@/components/hello-wave';
-import ParallaxScrollView from '@/components/parallax-scroll-view';
-import { ThemedText } from '@/components/themed-text';
-import { ThemedView } from '@/components/themed-view';
-import { Link } from 'expo-router';
+const { height } = Dimensions.get("window");
 
-export default function HomeScreen() {
-  return (
-    <ParallaxScrollView
-      headerBackgroundColor={{ light: '#A1CEDC', dark: '#1D3D47' }}
-      headerImage={
-        <Image
-          source={require('@/assets/images/partial-react-logo.png')}
-          style={styles.reactLogo}
-        />
-      }>
-      <ThemedView style={styles.titleContainer}>
-        <ThemedText type="title">Welcome!</ThemedText>
-        <HelloWave />
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 1: Try it</ThemedText>
-        <ThemedText>
-          Edit <ThemedText type="defaultSemiBold">app/(tabs)/index.tsx</ThemedText> to see changes.
-          Press{' '}
-          <ThemedText type="defaultSemiBold">
-            {Platform.select({
-              ios: 'cmd + d',
-              android: 'cmd + m',
-              web: 'F12',
-            })}
-          </ThemedText>{' '}
-          to open developer tools.
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <Link href="/modal">
-          <Link.Trigger>
-            <ThemedText type="subtitle">Step 2: Explore</ThemedText>
-          </Link.Trigger>
-          <Link.Preview />
-          <Link.Menu>
-            <Link.MenuAction title="Action" icon="cube" onPress={() => alert('Action pressed')} />
-            <Link.MenuAction
-              title="Share"
-              icon="square.and.arrow.up"
-              onPress={() => alert('Share pressed')}
+const DEMO_POSTS: Post[] = [
+  {
+    id: "1",
+    text: "Welcome to BlackBunny",
+    userId: "demo",
+    username: "BlackBunny",
+    createdAt: Date.now() - 86400000,
+  },
+  {
+    id: "2",
+    text: "Your feed is live",
+    userId: "demo",
+    username: "BlackBunny",
+    createdAt: Date.now() - 3600000,
+  },
+  {
+    id: "3",
+    text: "Scroll through the feed in full screen",
+    userId: "demo",
+    username: "BlackBunny",
+    createdAt: Date.now() - 1800000,
+  },
+];
+
+const formatTimestamp = (timestamp: number) => {
+  const now = Date.now();
+  const diff = now - timestamp;
+  const minutes = Math.floor(diff / 60000);
+  const hours = Math.floor(diff / 3600000);
+  const days = Math.floor(diff / 86400000);
+
+  if (minutes < 1) return "now";
+  if (minutes < 60) return `${minutes}m`;
+  if (hours < 24) return `${hours}h`;
+  return `${days}d`;
+};
+
+export default function Home() {
+  const [posts, setPosts] = useState<Post[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [hasInitialized, setHasInitialized] = useState(false);
+
+  // Initialize on first mount only
+  useEffect(() => {
+    const fetchPosts = async () => {
+      try {
+        const fetchedPosts = await getPosts();
+        setPosts(fetchedPosts.length > 0 ? fetchedPosts : DEMO_POSTS);
+      } catch (error) {
+        console.error("Error fetching posts:", error);
+        setPosts(DEMO_POSTS);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    if (!hasInitialized) {
+      fetchPosts();
+      setHasInitialized(true);
+    }
+  }, [hasInitialized]);
+
+  // Refresh feed when screen comes into focus
+  useFocusEffect(
+    useCallback(() => {
+      const refreshFeed = async () => {
+        try {
+          const fetchedPosts = await getPosts();
+          if (fetchedPosts.length > 0) {
+            setPosts(fetchedPosts);
+          }
+        } catch (error) {
+          console.error("Error refreshing feed:", error);
+        }
+      };
+
+      // Only refresh if we've already initialized
+      if (hasInitialized && !loading) {
+        refreshFeed();
+      }
+    }, [hasInitialized, loading])
+  );
+
+  const renderItem = ({ item }: { item: Post }) => (
+    <View
+      style={{
+        height,
+        backgroundColor: COLORS.background,
+        justifyContent: "center",
+        alignItems: "center",
+        padding: 24,
+      }}
+    >
+      <View
+        style={{
+          width: "100%",
+          maxWidth: 380,
+          paddingVertical: 20,
+          borderTopWidth: 1,
+          borderBottomWidth: 1,
+          borderTopColor: COLORS.textSecondary,
+          borderBottomColor: COLORS.textSecondary,
+        }}
+      >
+        <View style={{ flexDirection: "row", alignItems: "center", marginBottom: 14 }}>
+          {item.userAvatar ? (
+            <Image
+              source={{ uri: item.userAvatar }}
+              style={{ width: 44, height: 44, borderRadius: 22, marginRight: 12 }}
             />
-            <Link.Menu title="More" icon="ellipsis">
-              <Link.MenuAction
-                title="Delete"
-                icon="trash"
-                destructive
-                onPress={() => alert('Delete pressed')}
-              />
-            </Link.Menu>
-          </Link.Menu>
-        </Link>
+          ) : (
+            <View
+              style={{
+                width: 44,
+                height: 44,
+                borderRadius: 22,
+                backgroundColor: COLORS.accent,
+                justifyContent: "center",
+                alignItems: "center",
+                marginRight: 12,
+              }}
+            >
+              <Text style={{ ...TEXT_STYLES.bodyText, color: COLORS.background }}>
+                {item.username?.charAt(0).toUpperCase() || "U"}
+              </Text>
+            </View>
+          )}
+          <View>
+            <Text style={{ ...TEXT_STYLES.bodyText, fontWeight: "700" }}>{item.username}</Text>
+            <Text style={{ ...TEXT_STYLES.bodyText, fontSize: 12, color: COLORS.textSecondary }}>
+              {formatTimestamp(item.createdAt)}
+            </Text>
+          </View>
+        </View>
 
-        <ThemedText>
-          {`Tap the Explore tab to learn more about what's included in this starter app.`}
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 3: Get a fresh start</ThemedText>
-        <ThemedText>
-          {`When you're ready, run `}
-          <ThemedText type="defaultSemiBold">npm run reset-project</ThemedText> to get a fresh{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> directory. This will move the current{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> to{' '}
-          <ThemedText type="defaultSemiBold">app-example</ThemedText>.
-        </ThemedText>
-      </ThemedView>
-    </ParallaxScrollView>
+        <Text style={{ ...TEXT_STYLES.bodyText, marginBottom: 16 }}>{item.text}</Text>
+
+        {item.mediaUrl ? (
+          item.mediaType === "image" ? (
+            <Image
+              source={{ uri: item.mediaUrl }}
+              style={{ width: "100%", height: 240, borderRadius: 16 }}
+            />
+          ) : item.mediaType === "video" ? (
+            <Pressable
+              onPress={() => {
+                // For now, just show an alert. In a full implementation, this would open a video player
+                alert("Video playback would open here. URL: " + item.mediaUrl);
+              }}
+              style={{ position: "relative" }}
+            >
+              <View style={{
+                width: "100%",
+                height: 240,
+                borderRadius: 16,
+                backgroundColor: COLORS.dark,
+                justifyContent: "center",
+                alignItems: "center",
+              }}>
+                <View style={{
+                  width: 60,
+                  height: 60,
+                  borderRadius: 30,
+                  backgroundColor: COLORS.accent + '80',
+                  justifyContent: "center",
+                  alignItems: "center",
+                }}>
+                  <Text style={{ ...TEXT_STYLES.bodyText, fontSize: 24, color: COLORS.background }}>▶️</Text>
+                </View>
+                <Text style={{
+                  ...TEXT_STYLES.bodyText,
+                  color: COLORS.textSecondary,
+                  marginTop: 12,
+                  textAlign: "center"
+                }}>
+                  Tap to play video
+                </Text>
+              </View>
+            </Pressable>
+          ) : null
+        ) : null}
+      </View>
+    </View>
+  );
+
+  if (loading) {
+    return (
+      <View style={{ height, backgroundColor: COLORS.background, justifyContent: "center", alignItems: "center" }}>
+        <Text style={{ ...TEXT_STYLES.bodyText, fontSize: 18 }}>Loading feed...</Text>
+      </View>
+    );
+  }
+
+  return (
+    <FlatList
+      data={posts}
+      keyExtractor={(item) => item.id}
+      pagingEnabled
+      showsVerticalScrollIndicator={false}
+      renderItem={renderItem}
+      initialNumToRender={3}
+      maxToRenderPerBatch={3}
+      updateCellsBatchingPeriod={50}
+      getItemLayout={(data, index) => ({
+        length: height,
+        offset: height * index,
+        index,
+      })}
+    />
   );
 }
-
-const styles = StyleSheet.create({
-  titleContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  stepContainer: {
-    gap: 8,
-    marginBottom: 8,
-  },
-  reactLogo: {
-    height: 178,
-    width: 290,
-    bottom: 0,
-    left: 0,
-    position: 'absolute',
-  },
-});
